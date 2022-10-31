@@ -199,7 +199,7 @@ in rec {
       # joinOpenssl derivation as a dependnecy, we have to include it in
       # nativeBuildInputs as well or the variable will point to a path not
       # visible to the derivation at build time.
-      buildInputs = drv.buildInputs or [ ] ++ [(joinOpenssl (patchOpenssl pkgs.buildPackages))];
+      buildInputs = drv.buildInputs or [ ] ++ [(joinOpenssl (patchOpenssl pkgs.buildPackages)) (joinOpenssl (patchOpenssl pkgs))];
 
       # shellHook = ''
       #   # shellHook is also a means of injecting the build environment for this dependency
