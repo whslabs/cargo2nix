@@ -193,27 +193,35 @@ in rec {
   openssl-sys = makeOverride {
     name = "openssl-sys";
     overrideAttrs = drv: {
+      propagatedBuildInputs = drv.propagatedBuildInputs or [ ] ++ [
+        (propagateEnv "openssl-sys" [
+          { name = "RUSTFLAGS"; value = "--cfg ossl111 --cfg ossl110 --cfg ossl101";}
+          { name = "${envize (pkgs.rustBuilder.rustLib.rustTriple pkgs.stdenv.buildPlatform)}_OPENSSL_DIR"; value = joinOpenssl (patchOpenssl pkgs.buildPackages); }
+          { name = "${envize (pkgs.rustBuilder.rustLib.rustTriple pkgs.stdenv.hostPlatform)}_OPENSSL_DIR"; value = joinOpenssl (patchOpenssl pkgs); }
+          { name = "OPENSSL_NO_VENDOR"; value = "1";} # fixed 0.9.60
+        ])
+      ];
       # The setup hook will set the variables both for building openssl-sys and
       # in dependent derivations.  This mechanism will also set the variable
       # inside our development shell.  Because the setupHook does not add the
       # joinOpenssl derivation as a dependnecy, we have to include it in
       # nativeBuildInputs as well or the variable will point to a path not
       # visible to the derivation at build time.
-      buildInputs = drv.buildInputs or [ ] ++ [(joinOpenssl (patchOpenssl pkgs.buildPackages))];
+      #buildInputs = drv.buildInputs or [ ] ++ [(joinOpenssl (patchOpenssl pkgs.buildPackages)) (joinOpenssl (patchOpenssl pkgs))];
 
       # shellHook = ''
       #   # shellHook is also a means of injecting the build environment for this dependency
       #   # export FOO=BAR
       # '';
-      setupHook = buildPackages.writeText "openssl-sys-setup-env.sh" ''
-          openssl-sys-setup-env() {
-            export ${envize (pkgs.rustBuilder.rustLib.rustTriple pkgs.stdenv.buildPlatform)}_OPENSSL_DIR=${lib.escapeShellArg (joinOpenssl (patchOpenssl pkgs.buildPackages))}
-            export ${envize (pkgs.rustBuilder.rustLib.rustTriple pkgs.stdenv.hostPlatform)}_OPENSSL_DIR=${lib.escapeShellArg (joinOpenssl (patchOpenssl pkgs))}
-            export OPENSSL_NO_VENDOR=1 # fixed 0.9.60
-            # export RUSTFLAGS="''${RUSTFLAGS:-} --cfg ossl111 --cfg ossl110 --cfg ossl101"
-          }
-          addEnvHooks "$hostOffset" openssl-sys-setup-env
-      '';
+      #setupHook = buildPackages.writeText "openssl-sys-setup-env.sh" ''
+      #    openssl-sys-setup-env() {
+      #      export ${envize (pkgs.rustBuilder.rustLib.rustTriple pkgs.stdenv.buildPlatform)}_OPENSSL_DIR=${lib.escapeShellArg (joinOpenssl (patchOpenssl pkgs.buildPackages))}
+      #      export ${envize (pkgs.rustBuilder.rustLib.rustTriple pkgs.stdenv.hostPlatform)}_OPENSSL_DIR=${lib.escapeShellArg (joinOpenssl (patchOpenssl pkgs))}
+      #      export OPENSSL_NO_VENDOR=1 # fixed 0.9.60
+      #      # export RUSTFLAGS="''${RUSTFLAGS:-} --cfg ossl111 --cfg ossl110 --cfg ossl101"
+      #    }
+      #    addEnvHooks "$hostOffset" openssl-sys-setup-env
+      #'';
     };
   };
 
